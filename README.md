@@ -9,5 +9,5 @@ An AI-powered Retrieval-Augmented Generation (RAG) chat application. Upload docu
 
 ## Tech Stack
 - **Backend:** Node.js, [Express / Fastify]
-- **AI & RAG:** [Your LLM & Vector DB]
-- **Frontend:** [If applicable, or remove this line for now]
+- **AI & RAG:** [LLM & Vector DB]
+- **Frontend:** Js, CSS, HTML
