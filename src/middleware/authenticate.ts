@@ -12,13 +12,15 @@ declare global {
   }
 }
 
+// CHANGED: added ": void" and split "return res.status(...)" into two lines (Express 5 typings)
 export function authenticate(
   req: Request, res: Response, next: NextFunction
-) {
+): void {
   const header = req.headers.authorization;
 
   if (!header || !header.startsWith('Bearer ')) {
-    return res.status(401).json({ error: 'No token provided' });
+    res.status(401).json({ error: 'No token provided' });
+    return;
   }
 
   const token = header.split(' ')[1];
@@ -28,7 +30,8 @@ export function authenticate(
 
     // Make sure it's an access token, not a refresh token
     if (payload.type !== 'access') {
-      return res.status(401).json({ error: 'Invalid token type' });
+      res.status(401).json({ error: 'Invalid token type' });
+      return;
     }
 
     // Attach user context to the request
@@ -37,10 +40,9 @@ export function authenticate(
 
   } catch (error: any) {
     if (error.name === 'TokenExpiredError') {
-      return res.status(401).json({ error: 'Token expired' });
+      res.status(401).json({ error: 'Token expired' });
+      return;
     }
-    return res.status(401).json({ error: 'Invalid token' });
+    res.status(401).json({ error: 'Invalid token' });
   }
 }
-
-
