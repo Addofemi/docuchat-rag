@@ -9,7 +9,7 @@ datasource db {
 
 model User {
   id            String    @id @default(cuid())
-  name          String
+  name          String?   // CHANGED: was "String". The lesson's register doesn't send a name
   email         String    @unique
   passwordHash  String
   role          String    @default("user")
@@ -19,18 +19,14 @@ model User {
   createdAt     DateTime  @default(now())
   updatedAt     DateTime  @updatedAt
 
+  // CHANGED: opposite sides of the relations
+  refreshTokens RefreshToken[]
+  roles         UserRole[]
+  usageLogs     UsageLog[]
+  conversations Conversation[]
 
   @@index([email])
 }
-
-// You will add Document, Conversation, Message, Chunk,
-// RefreshToken, and other models in the coming days.
-// Each follows the same pattern: cuid() IDs, timestamps,
-// foreign keys for relationships, constraints for safety.
-
-
-
-// Add to prisma/schema.prisma:
 
 model RefreshToken {
   id        String   @id @default(uuid())
@@ -39,13 +35,84 @@ model RefreshToken {
   expiresAt DateTime
   createdAt DateTime @default(now())
 
-  user      User     @relation(fields: [userId], references: [id],
-                               onDelete: Cascade)
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@index([userId])
   @@index([expiresAt])
 }
 
-// Add to the User model:
-// refreshTokens RefreshToken[]
+// CHANGED: added, because auth.events.ts uses it
+model UsageLog {
+  id        String   @id @default(cuid())
+  userId    String
+  action    String
+  tokens    Int      @default(0)
+  costUsd   Float    @default(0)
+  metadata  String?
+  createdAt DateTime @default(now())
 
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([createdAt])
+}
+
+// CHANGED: added, because auth.events.ts uses it
+model Conversation {
+  id        String   @id @default(cuid())
+  userId    String
+  title     String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+}
+
+model Role {
+  id          String   @id @default(uuid())
+  name        String   @unique   // 'admin', 'member', 'viewer'
+  description String?
+  isDefault   Boolean  @default(false)  // New users get this role
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  users       UserRole[]
+  permissions RolePermission[]
+}
+
+model Permission {
+  id          String   @id @default(uuid())
+  name        String   @unique   // 'documents:create'
+  description String?
+  resource    String              // 'documents'
+  action      String              // 'create'
+  createdAt   DateTime @default(now())
+
+  roles       RolePermission[]
+
+  @@unique([resource, action])
+}
+
+model UserRole {
+  userId     String
+  roleId     String
+  assignedAt DateTime @default(now())
+  assignedBy String?  // Who assigned this role (for audit)
+
+  user       User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  role       Role @relation(fields: [roleId], references: [id], onDelete: Cascade)
+
+  @@id([userId, roleId])
+}
+
+model RolePermission {
+  roleId       String
+  permissionId String
+
+  role       Role       @relation(fields: [roleId], references: [id], onDelete: Cascade)
+  permission Permission @relation(fields: [permissionId], references: [id], onDelete: Cascade)
+
+  @@id([roleId, permissionId])
+}
